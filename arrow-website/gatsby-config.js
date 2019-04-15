@@ -1,5 +1,9 @@
 const {getGatsbyConfig} = require('ocular-gatsby/api');
 
-const config = require('./ocular-config');
+const rawConfig = require('./ocular-config');
 
-module.exports = getGatsbyConfig(config);
+const completeConfig = getGatsbyConfig(rawConfig);
+
+console.error(JSON.stringify(completeConfig, null, 2));
+
+module.exports = completeConfig;
