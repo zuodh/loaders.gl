@@ -1,10 +1,10 @@
-const DOCS = require('../docs/table-of-contents.json');
+const DOCS = require('../arrow-docs/table-of-contents.json');
 
 module.exports = {
   logLevel: 4,
 
   DIR_NAME: `${__dirname}`,
-  DOC_FOLDER: `${__dirname}/../docs`,
+  DOC_FOLDER: `${__dirname}/../arrow-docs`,
   ROOT_FOLDER: `${__dirname}/..`,
 
   DOCS,
