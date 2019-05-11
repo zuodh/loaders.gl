@@ -96,7 +96,7 @@ module.exports = {
     },
     {
       title: '3D Tiles',
-      image: 'images/example-gltf.jpg',
+      image: 'images/example-3d-tiles.png',
       componentUrl: resolve(__dirname, '../examples/3d-tiles/app.js'),
       path: 'examples/3d-tiles'
     },
