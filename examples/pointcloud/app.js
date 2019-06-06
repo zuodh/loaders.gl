@@ -16,7 +16,6 @@ import {OBJLoader} from '@loaders.gl/obj';
 import {load, registerLoaders} from '@loaders.gl/core';
 
 import ControlPanel from './components/control-panel';
-import fileDrop from './components/file-drop';
 
 import FILE_INDEX from './file-index';
 
