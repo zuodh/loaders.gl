@@ -36,19 +36,24 @@ export function createBoundingVolume(boundingVolumeHeader, transform, result) {
     // Heights are in meters above (or below) the WGS 84 ellipsoid.
     const [west, south, east, north, minHeight, maxHeight] = boundingVolumeHeader.region;
 
-    const center = new Vector3(
-      degrees((west + east) / 2),
-      degrees((north + south) / 2),
-      (minHeight + maxHeight) / 2
-    );
+    const { WGS84 } = Ellipsoid;
 
-    const centerInCartesian = Ellipsoid.WGS84.cartographicToCartesian(center, scratchCenter);
+    const corners = [
+      [north, west, minHeight],
+      [north, east, minHeight],
+      [south, west, minHeight],
+      [south, east, minHeight],
+      [north, west, maxHeight],
+      [north, east, maxHeight],
+      [south, west, maxHeight],
+      [south, east, maxHeight]
+    ].map(WGS84.cartographicToCartesian);
 
-    const northWest = Ellipsoid.WGS84.cartographicToCartesian([north, west, 0]);
-    const northEast = Ellipsoid.WGS84.cartographicToCartesian([north, east, 0]);
-    const southWest = Ellipsoid.WGS84.cartographicToCartesian([south, west, 0]);
-    const radius =
-      (Math.abs(northEast[0] - northWest[0]) + Math.abs(southWest[1] - northWest[1])) * 8;
+    const center = corners.reduce((sum, point) => sum.add(point), new Vector3()).scale(1 / 8);
+    const radiusSquared = corners.reduce((max, point) => Math.max(max, point.distanceSquaredTo(center)), 0);
+    const radius = Math.sqrt(radiusSquared);
+
+    console.log('Radius', radius, corners);
 
     // TODO fix region boundingVolume
     // for now, create a fake big sphere as the boundingVolume
