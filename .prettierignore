@@ -1,12 +1,14 @@
-**/src/libs/*
-
+node_modules/
 **/dist/*
 **/wip/*
-node_modules/
+**/src/libs/*
 *.min.js
+
+# website
 .cache
 public
 
+# test data
 modules/potree/test/data/**/cloud.js
 
-
+modules/xml

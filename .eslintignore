@@ -1,13 +1,14 @@
-dist
-
-**/src/libs/*
+node_modules/
 **/dist/*
 **/wip/*
-node_modules/
+**/src/libs/*
 *.min.js
-**/*.minified.js
 
+# website
 public/
 .cache/
 
+# test data
 modules/potree/test/data/**/cloud.js
+
+modules/xml

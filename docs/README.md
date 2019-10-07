@@ -55,7 +55,7 @@ We also have an ambition that loaders.gl should run on Edge, IE11 and Node.js v8
 
 ## Licenses, Credits and Attributions
 
-License-wise, loaders.gl currently contains a collection of MIT, BSD and Apache licensed loaders. Each loader comes with its own license, so if the distinction matters to you, please check and decide accordingly. Additional licenses might be included in the future, however loaders.gl will never include code with non-permissive, commercial or copy-left licenses.
+License-wise, loaders.gl currently contains a collection of MIT, BSD, ISC and Apache licensed loaders. Each loader comes with its own license(s), so if the distinction matters to you, please check and decide accordingly. Additional licenses might be included in the future, however loaders.gl will never include code with non-permissive, commercial or copy-left licenses.
 
 Regading attributions, loaders.gl is partly a repackaging of the superb work done by many others in the open source community. We try to be as explicit as we can about the origins and attributions of each loader, both in the documentation page for each loader and in the preservation of comments relating to authorship and contributions inside forked source code.
 
