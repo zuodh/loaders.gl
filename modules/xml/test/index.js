@@ -4,7 +4,7 @@ import './sax-js/attribute-name';
 import './sax-js/attribute-no-space';
 import './sax-js/attribute-unquoted';
 import './sax-js/bom';
-// import './sax-js/buffer-overrun';
+import './sax-js/buffer-overrun'; // ERROR
 import './sax-js/case';
 import './sax-js/cdata-chunked';
 import './sax-js/cdata-end-split';

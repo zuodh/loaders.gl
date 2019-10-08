@@ -9,7 +9,7 @@ let testCount = 0;
 // if the options contains an xml string, it'll be written and the parser closed.
 // otherwise, it's assumed that the test will write and close.
 exports.test = function test(options) {
-  var parser = sax.parser(options.strict, options.opt)
+  var parser = sax.parser(options.strict, {...options.opt, testMode: true})
   makeTest(`sax-js-${++testCount}`, t => {
     var xml = options.xml
     var expect = options.expect
