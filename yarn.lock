@@ -1435,6 +1435,13 @@
     npmlog "^4.1.2"
     write-file-atomic "^2.3.0"
 
+"@loaders.gl/experimental@2.0.0-alpha.4":
+  version "2.0.0-alpha.4"
+  resolved "https://registry.yarnpkg.com/@loaders.gl/experimental/-/experimental-2.0.0-alpha.4.tgz#6a7f373864f19542dc91ad2825cf1d706c65e4bb"
+  integrity sha512-ZA9VDiJfFwEG32dmPnTFTpwJQfCmmrKu87PS8pBuz9U6TrqK4jPGkxpufuMOTYL+bMKbAEdhWux3hbUAdmdGRA==
+  dependencies:
+    "@loaders.gl/core" "2.0.0-alpha.4"
+
 "@luma.gl/constants@7.3.0":
   version "7.3.0"
   resolved "https://registry.yarnpkg.com/@luma.gl/constants/-/constants-7.3.0.tgz#b1c45f22ccdd0f2b7064df3d76c44e30d19e3252"
@@ -1641,6 +1648,11 @@
   version "10.14.18"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-10.14.18.tgz#b7d45fc950e6ffd7edc685e890d13aa7b8535dce"
   integrity sha512-ryO3Q3++yZC/+b8j8BdKd/dn9JlzlHBPdm80656xwYUdmPkpTGTjkAdt6BByiNupGPE8w0FhBgvYy/fX9hRNGQ==
+
+"@types/node@^11.11.6":
+  version "11.15.0"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-11.15.0.tgz#1a0974a5bfdf5eee1b85945790a03bcea2f63fa5"
+  integrity sha512-JRq4kw1GQZrF90YRrp3C1kIoioAEj9PweNF2Qgp/6XZYVgXPl7OWKdggFNtRxlBPyl40Fz/bOhCnXuKMFaJ06w==
 
 "@types/text-encoding-utf-8@^1.0.1":
   version "1.0.1"
@@ -5648,6 +5660,14 @@ istanbul-reports@^2.1.1:
   integrity sha512-SKi4rnMyLBKe0Jy2uUdx28h8oG7ph2PPuQPvIAh31d+Ci+lSiEu4C+h3oBPuJ9+mPKhOyW0M8gY4U5NM1WLeXA==
   dependencies:
     handlebars "^4.1.2"
+
+ix@^2.5.3:
+  version "2.5.3"
+  resolved "https://registry.yarnpkg.com/ix/-/ix-2.5.3.tgz#b62899723297b2805343d1c77756b8568ed8dbec"
+  integrity sha512-Syz3oYUx5+P0T9F3BZOE2DzvWYF31Mbha1VqDbJsr4e4A+twhxTAf2c1BO8TMlwon12oAvvxAtQ+NJm9P8ISYQ==
+  dependencies:
+    "@types/node" "^11.11.6"
+    tslib "^1.9.3"
 
 jpeg-js@0.0.4:
   version "0.0.4"

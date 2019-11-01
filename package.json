@@ -52,6 +52,7 @@
     "eslint-config-uber-jsx": "^3.3.3",
     "eslint-plugin-babel": "^5.3.0",
     "eslint-plugin-react": "^7.13",
+    "ix": "^2.5.3",
     "mkdirp": "^0.5.1",
     "ocular-dev-tools": "0.0.30",
     "pre-commit": "^1.2.2",
