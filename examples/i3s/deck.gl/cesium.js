@@ -37,6 +37,14 @@ export function cesiumUnload(tileId) {
 }
 
 export function cesiumRender(viewport, tile) {
+  if (!tile) {
+    return;
+  }
+
+  if (!tile.attributes) {
+    console.log(tile);
+    return;
+  }
   const {
     texture,
     attributes: {id, position, normal, color, uv0}

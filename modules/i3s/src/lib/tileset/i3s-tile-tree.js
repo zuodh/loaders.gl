@@ -7,6 +7,8 @@ export const TILE3D_CONTENT_STATE = {
   FAILED: 6 // Request failed.
 };
 
+import {stats} from './i3s-tileset';
+
 export class I3STileNode {
   constructor(content) {
     this.id = content.id;
@@ -17,7 +19,7 @@ export class I3STileNode {
     this.content = content;
 
     this._priority = this.lodMaxError;
-    this._isVisible = false;
+    this._isVisible = true;
     this._contentState = content._contentState || TILE3D_CONTENT_STATE.UNLOADED;
 
     this.children = [];
@@ -25,8 +27,12 @@ export class I3STileNode {
 }
 
 export default class I3STileTree {
-  constructor() {
+  constructor(options) {
     this.children = [];
+    this._root = null;
+
+    console.log(options);
+    this.onUnload = options.onTileUnload;
   }
 
   appendNode(node) {
@@ -36,6 +42,10 @@ export default class I3STileTree {
     }
 
     const newNode = new I3STileNode(node);
+    if (node.id === 'root') {
+      this._root = newNode;
+    }
+
     const parentNode = this.searchNode(node.parentNode && node.parentNode.id);
     if (parentNode == null) {
       this.children.push(newNode);
@@ -100,17 +110,43 @@ export default class I3STileTree {
     const node = this.searchNode(id);
 
     if (node) {
+      if (!stats[id]) {
+        stats[node.id] = {
+          cancelled: 0,
+          requested: 0,
+          processed: 0,
+          unloaded: 0
+        };
+      }
+      stats[node.id].unloaded += 1;
       node._isVisible = false;
+      node._contentState = TILE3D_CONTENT_STATE.UNLOADED;
+      // node.attributes = null;
+    }
+
+    if (this.onUnload) {
+      this.onUnload(node);
     }
   }
 
-  unloadNodeByObject(node, onUnload) {
+  unloadNodeByObject(node) {
     if (node) {
+      if (!stats[node.id]) {
+        stats[node.id] = {
+          cancelled: 0,
+          requested: 0,
+          processed: 0,
+          unloaded: 0
+        };
+      }
+      stats[node.id].unloaded += 1;
       node._isVisible = false;
       node._contentState = TILE3D_CONTENT_STATE.UNLOADED;
+      // node.attributes = null;
     }
-    if (onUnload) {
-      onUnload(node);
+
+    if (this.onUnload) {
+      this.onUnload(node);
     }
   }
 

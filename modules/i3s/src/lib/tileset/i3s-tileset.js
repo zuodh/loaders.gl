@@ -15,6 +15,8 @@ const DEFAULT_OPTIONS = {
   }
 };
 
+export const stats = {};
+
 function updatePriority(tile) {
   // Check if any reason to abort
   if (!tile._isVisible) {
@@ -37,7 +39,7 @@ export default class I3STileset {
       selectedTiles: null
     };
 
-    this._traverser = new I3STraverser({baseUrl});
+    this._traverser = new I3STraverser({baseUrl, ...options});
     this._requestScheduler = new RequestScheduler({
       throttleRequests: this.options.throttleRequests
     });
@@ -59,12 +61,26 @@ export default class I3STileset {
       const selectedTiles = Object.values(this.results.selectedTiles);
       for (const tile of selectedTiles) {
         if (tile._contentState === TILE3D_CONTENT_STATE.UNLOADED) {
-
           tile._contentState = TILE3D_CONTENT_STATE.LOADING_CONTENT;
 
+          if (!stats[tile.id]) {
+            stats[tile.id] = {
+              cancelled: 0,
+              requested: 0,
+              processed: 0,
+              unloaded: 0
+            };
+          }
+
+          if (stats[tile.id].requested) {
+            continue;
+          }
+
+          stats[tile.id].requested += 1;
           const cancelled = !(await this._requestScheduler.scheduleRequest(tile, updatePriority));
 
           if (cancelled) {
+            stats[tile.id].cancelled += 1;
             tile._contentState = TILE3D_CONTENT_STATE.UNLOADED;
             continue;
           }
@@ -75,6 +91,7 @@ export default class I3STileset {
             this._requestScheduler.endRequest(tile);
 
             tile._contentState = TILE3D_CONTENT_STATE.READY;
+
             this._onTileLoad(tile);
           } catch (error) {
             // Tile is unloaded before the content finishes loading
@@ -84,6 +101,8 @@ export default class I3STileset {
         }
       }
     }
+
+    console.log(stats);
   }
 
   async _loadTile(tile) {
@@ -93,7 +112,9 @@ export default class I3STileset {
 
     if (
       tile.attributes ||
-      tile._contentState === TILE3D_CONTENT_STATE.READY || tile._contentState === TILE3D_CONTENT_STATE.UNLOADED
+      tile._contentState === TILE3D_CONTENT_STATE.READY ||
+      tile._contentState === TILE3D_CONTENT_STATE.PROCESSING ||
+      tile._contentState === TILE3D_CONTENT_STATE.UNLOADED
     ) {
       return;
     }
@@ -102,48 +123,42 @@ export default class I3STileset {
       return;
     }
 
-    this._requestScheduler.startRequest(tile);
-    const featureData = await this._loadFeatureData(tile);
-    const geometryBuffer = await this._loadGeometryBuffer(tile);
-    this._requestScheduler.endRequest(tile);
-
-    tile.featureData = featureData;
-
+    tile._contentState = TILE3D_CONTENT_STATE.PROCESSING;
+    tile.featureData = await loadFeatureData(this.baseUrl, tile);
+    tile.geometryBuffer = await loadGeometryBuffer(this.baseUrl, tile);
+    tile.gpuMemoryUsageInBytes = tile.geometryBuffer.byteLength;
     if (tile.content.textureData) {
       tile.texture = `${this.baseUrl}/nodes/${tile.id}/${tile.content.textureData[0].href}`;
     }
 
-    parseI3SNodeGeometry(geometryBuffer, tile);
-
+    parseI3SNodeGeometry(tile.geometryBuffer, tile);
+    if (!stats[tile.id]) {
+      stats[tile.id] = {
+        cancelled: 0,
+        requested: 0,
+        processed: 0
+      };
+    }
+    stats[tile.id].processed += 1;
     tile._contentState = TILE3D_CONTENT_STATE.READY;
-  }
-
-  async _loadFeatureData(tile) {
-    if (this.options.files) {
-      const featureDataPath = getTileFeaturePath(tile.id, 0);
-      return this.options.files[featureDataPath];
-    } else {
-      const featureData = tile.content.featureData[0];
-      const featureDataPath = `${this.baseUrl}/nodes/${tile.id}/${featureData.href}`;
-      return await fetch(featureDataPath).then(resp => resp.json());
-    }
-  }
-
-  async _loadGeometryBuffer(tile) {
-    if (this.options.files) {
-      const geometryBufferPath = getTileGeometryBufferPath(tile.id, 0);
-      return this.options.files[geometryBufferPath];
-    } else {
-      const geometryData = tile.content.geometryData[0];
-      const geometryDataPath = `${this.baseUrl}/nodes/${tile.id}/${geometryData.href}`;
-      return await fetch(geometryDataPath).then(resp => resp.arrayBuffer());
-    }
   }
 }
 
-export async function fetchTileNode(baseUrl, nodeId) {
-  const nodeUrl = `${baseUrl}/nodes/${nodeId}`;
-  return await fetch(nodeUrl).then(resp => resp.json());
+async function loadFeatureData(baseUrl, tile) {
+  const featureData = tile.content.featureData[0];
+  const featureDataPath = `${baseUrl}/nodes/${tile.id}/${featureData.href}`;
+  return await fetch(featureDataPath).then(resp => resp.json());
+}
+
+async function loadGeometryBuffer(baseUrl, tile) {
+  const geometryData = tile.content.geometryData[0];
+  const geometryDataPath = `${baseUrl}/nodes/${tile.id}/${geometryData.href}`;
+  return await fetch(geometryDataPath).then(resp => resp.arrayBuffer());
+}
+
+export async function fetchTileNode(baseUrl, tileId) {
+  const tileUrl = `${baseUrl}/nodes/${tileId}`;
+  return await fetch(tileUrl).then(resp => resp.json());
 }
 
 async function fetchRootNode(baseUrl, rootRef) {

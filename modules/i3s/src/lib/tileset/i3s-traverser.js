@@ -25,16 +25,17 @@ export default class I3STraverser {
         break;
       case 'DIG':
         const children = tileNode.content.children;
-        this._tree.unloadNodeByObject(tileNode, options.onTileUnload);
+        this._tree.unloadNodeByObject(tileNode);
         for (let i = 0; i < children.length; i++) {
           const childId = tileNode.content.children[i].id;
           let tileset = this._tileMap[childId];
           if (!tileset) {
+            this._tileMap[childId] = {};
             tileset = await fetchTileNode(this.baseUrl, childId);
             this._tileMap[childId] = tileset;
           }
 
-          if (tileset.lodSelection) {
+          if (tileset && tileset.lodSelection) {
             await this._traverse(tileset, frameState, options);
           }
         }
