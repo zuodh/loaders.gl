@@ -222,6 +222,10 @@ export default class Tile3DHeader {
     return this._header.extras;
   }
 
+  makeReady() {
+    this._contentState = TILE3D_CONTENT_STATE.READY;
+  }
+
   // Get the tile's screen space error.
   getScreenSpaceError(frameState, useParentGeometricError) {
     const tileset = this._tileset;
@@ -338,7 +342,7 @@ export default class Tile3DHeader {
         this._tileset._initializeTileHeaders(this._content, this, path.dirname(this.uri));
       }
 
-      this._contentState = TILE3D_CONTENT_STATE.READY;
+      this._contentState = TILE3D_CONTENT_STATE.PROCESSING;
       this._contentLoaded();
       return true;
     } catch (error) {
@@ -473,7 +477,7 @@ export default class Tile3DHeader {
   // @returns {Number} The distance, in meters, or zero if the camera is inside the bounding volume.
   distanceToTile(frameState) {
     const boundingVolume = this._boundingVolume;
-    return Math.sqrt(boundingVolume.distanceSquaredTo(frameState.camera.position));
+    return Math.sqrt(Math.max(boundingVolume.distanceSquaredTo(frameState.camera.position), 0.0000001));
   }
 
   // Computes the tile's camera-space z-depth.

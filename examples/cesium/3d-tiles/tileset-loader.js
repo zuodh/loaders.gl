@@ -39,6 +39,7 @@ export async function loadTileset({tilesetUrl, ionAssetId, ionAccessToken, viewe
   viewer.scene.preRender.addEventListener(scene => {
     const frameState = convertCesiumFrameState(scene.frameState, scene.canvas.height);
     tileset3d.update(frameState);
+    updateShow(frameState);
   });
 }
 
@@ -59,6 +60,9 @@ function loadTile(uri, tileHeader) {
     case 'b3dm':
       loadBatchedModelTile(uri, tileHeader).then(renderTilePrimitive);
       break;
+    case 'json':
+      // External tileset. Handled by loaders.
+      break;
     default:
       console.log(`${type} is not implemented.`); // eslint-disable-line
   }
@@ -69,13 +73,28 @@ function loadTile(uri, tileHeader) {
 //   tileMap[contentUri].show = visibility;
 // }
 
+function updateShow(frameState) {
+  const {frameNumber} = frameState;
+
+  const tileMapValues = Object.values(tileMap);
+
+  for (const value of tileMapValues) {
+    const {primitive, tileHeader} = value;
+    // Show the primitive if its tile was selected this frame
+    primitive.show = tileHeader.selectedFrame === frameNumber;
+  }
+}
+
 function unloadTile(contentUri) {
   viewer.scene.primitives.remove(tileMap[contentUri]);
   delete tileMap[contentUri];
 }
 
 function renderTilePrimitive({primitive, tileHeader}) {
-  tileMap[tileHeader.contentUri] = primitive;
+  const {contentUri} = tileHeader;
+  tileHeader.makeReady();
+  tileMap[contentUri] = {primitive, tileHeader};
+  primitive.show = false; // Toggle show based on tileHeader.selectedFrame
   viewer.scene.primitives.add(primitive);
 }
 

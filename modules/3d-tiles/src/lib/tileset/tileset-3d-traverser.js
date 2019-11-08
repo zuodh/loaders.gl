@@ -101,8 +101,8 @@ export default class Tileset3DTraverser {
     }
   }
 
-  visitTile(tileset, tile, frameState) {
-    ++tileset._statistics.visited;
+  visitTile(tile, frameState) {
+    ++tile.tileset._statistics.visited;
     tile._visitedFrame = frameState.frameNumber;
   }
 
@@ -341,7 +341,7 @@ export default class Tileset3DTraverser {
         }
       }
 
-      // this.visitTile(tileset, tile, frameState);
+      // this.visitTile(tile, frameState);
       this.touchTile(tile, frameState);
       tile._refines = refines;
     }
