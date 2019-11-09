@@ -82,6 +82,9 @@ function updateShow(frameState) {
     const {primitive, tileHeader} = value;
     // Show the primitive if its tile was selected this frame
     primitive.show = tileHeader.selectedFrame === frameNumber;
+    if (tileHeader.readyWakeFrame <= frameNumber) {
+      tileHeader.makeReady();
+    }
   }
 }
 
@@ -92,7 +95,8 @@ function unloadTile(contentUri) {
 
 function renderTilePrimitive({primitive, tileHeader}) {
   const {contentUri} = tileHeader;
-  tileHeader.makeReady();
+  // tileHeader.makeReady();
+  tileHeader.readyWakeFrame = tileHeader._touchedFrame + 10;
   tileMap[contentUri] = {primitive, tileHeader};
   primitive.show = false; // Toggle show based on tileHeader.selectedFrame
   viewer.scene.primitives.add(primitive);

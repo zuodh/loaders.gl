@@ -613,6 +613,7 @@ export default class Tile3DHeader {
 
     this._updatedVisibilityFrame = 0;
     this._touchedFrame = 0;
+    this.readyWakeFrame = Number.MAX_VALUE;
     this._visitedFrame = 0;
     this._selectedFrame = 0;
     this._requestedFrame = 0;
