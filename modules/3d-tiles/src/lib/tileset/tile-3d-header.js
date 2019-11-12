@@ -338,7 +338,6 @@ export default class Tile3DHeader {
         this._tileset._initializeTileHeaders(this._content, this, path.dirname(this.uri));
       }
 
-      this._contentState = TILE3D_CONTENT_STATE.READY;
       this._contentLoaded();
       return true;
     } catch (error) {
@@ -507,7 +506,7 @@ export default class Tile3DHeader {
     if (expire) {
       expireDuration = expire.duration;
       if (expire.date) {
-        expireDate = Date.fromIso8601(expire.date);
+        expireDate = Date.parse(expire.date);
       }
     }
 
