@@ -1,8 +1,13 @@
 # Image Utilities
 
 A small set of image utility functions functions intended to help write image handling code that works across platforms.
+<<<<<<< HEAD
+
+# Background: The image returned by the [`ImageLoader`](modules/images/docs/api-reference/image-loader.md) depends on the environment, i.e. whether the application is running in a new or old browser, or under Node.js.
 
 Background: The image returned by the [`ImageLoader`](modules/images/docs/api-reference/image-loader.md) depends on the environment, i.e. whether the application is running in a new or old browser, or under Node.js.
+
+> > > > > > > images: improve image-data loading
 
 ## Usage
 
@@ -47,11 +52,20 @@ Throws
 
 - if `image` is not of a recognized type.
 
-| Type          | JavaScript Type                                 | Description                                        |
+<<<<<<< HEAD
+| Type | JavaScript Type | Description |
 | ------------- | ----------------------------------------------- | -------------------------------------------------- |
-| `data`        | Image data object: `data`, `width`, `height` .. | Node.js representation                             |
-| `imagebitmap` | `ImageBitmap`                                   | The newer HTML5 image class (modern browsers only) |
-| `image`       | `Image` aka `HTMLImageElement`                  | The older, less flexible HTML image element        |
+| `data` | Image data object: `data`, `width`, `height` .. | Node.js representation |
+| `imagebitmap` | `ImageBitmap` | The newer HTML5 image class (modern browsers only) |
+| `image` | `Image` aka `HTMLImageElement` | The older, less flexible HTML image element |
+=======
+| Type | JavaScript Type | Description |
+| --------- | ------------------------------------------------------- | -------------------------------------------------- |
+| `data` | Image data object: `data`, `width`, `height` .. | Node.js representation |
+| `imagebitmap` | `ImageBitmap` | The newer HTML5 image class (modern browsers only) |
+| `image` | `Image` aka `HTMLImageElement` | The older, less flexible HTML image element |
+
+> > > > > > > images: improve image-data loading
 
 ### getImageData(image : any) : Object
 

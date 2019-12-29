@@ -1,11 +1,11 @@
 import test from 'tape-promise/tape';
 
-import {ImageLoader, getImageSize, isImageTypeSupported} from '@loaders.gl/images';
+import {ImageLoader, isImageTypeSupported, getImageType, getImageData} from '@loaders.gl/images';
 import {isBrowser, load} from '@loaders.gl/core';
 
 import {TEST_CASES, IMAGE_URL, IMAGE_DATA_URL} from './lib/test-cases';
 
-const TYPES = ['auto', 'imagebitmap', 'html', 'ndarray'].filter(isImageTypeSupported);
+const TYPES = ['auto', 'imagebitmap', 'image', 'data'].filter(isImageTypeSupported);
 
 test('image loaders#imports', t => {
   t.ok(ImageLoader, 'ImageLoader defined');
@@ -17,7 +17,6 @@ test('ImageLoader#load(URL)', async t => {
     const image = await load(IMAGE_URL, ImageLoader, {image: {type}});
     t.ok(image, 'image loaded successfully from URL');
   }
-
   t.end();
 });
 
@@ -36,29 +35,24 @@ test('ImageLoader#load(data URL)', async t => {
   t.end();
 });
 
-test('ImageLoader#formats', async t => {
+test(`ImageLoader#load({type: 'data'})`, async t => {
   for (const testCase of TEST_CASES) {
-    await testLoadImage(t, testCase);
+    const {title, url, width, height, skip} = testCase;
+
+    // Skip some test case under Node.js
+    if (skip) {
+      return;
+    }
+
+    const imageData = await load(url, ImageLoader, {image: {type: 'data'}});
+    t.equal(getImageType(imageData), 'data', `${title} image type is data`);
+    t.equal(getImageData(imageData), imageData, `${title} getImageData() works`);
+    t.equal(imageData.width, width, `${title} image has correct width`);
+    t.equal(imageData.height, height, `${title} image has correct height`);
   }
+
   t.end();
 });
-
-async function testLoadImage(t, testCase) {
-  const {title, url, width, height, skip} = testCase;
-
-  // Skip some test cases under Node.js
-  if (skip) {
-    return;
-  }
-
-  const image = await load(url, ImageLoader);
-  t.ok(image, `${title} loaded ${url.slice(0, 40)}...`);
-  const imageSize = getImageSize(image);
-  t.ok(
-    imageSize.width === width && imageSize.height === height,
-    `${title} image has correct content ${url.slice(0, 30)}`
-  );
-}
 
 /*
 test('loadImage#worker', t => {

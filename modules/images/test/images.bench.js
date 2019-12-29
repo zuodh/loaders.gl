@@ -9,10 +9,18 @@ export default async function imageLoaderBench(suite) {
   const response = await fetchFile(TEST_URL);
   const arrayBuffer = await response.arrayBuffer();
 
-  for (const type of ['html', 'imagebitmap', 'ndarray']) {
+  for (const type of ['image', 'imagebitmap', 'data']) {
     if (isImageTypeSupported(type)) {
-      suite.addAsync(`load(ImageLoader, type=${type})`, async () => {
+      suite.addAsync(`parse(ImageLoader, type=${type})`, async () => {
         return await parse(arrayBuffer, ImageLoader, {image: {type}});
+      });
+    }
+  }
+
+  for (const type of ['image', 'imagebitmap', 'data']) {
+    if (isImageTypeSupported(type)) {
+      suite.addAsync(`parse(ImageLoader, type=${type}, data=true)`, async () => {
+        return await parse(arrayBuffer, ImageLoader, {image: {type, data: true}});
       });
     }
   }

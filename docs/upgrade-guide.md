@@ -1,5 +1,12 @@
 # Upgrade Guide
 
+## Upgrading to v2.1
+
+`@loaders.gl/images`
+
+- `getImageData(image)` now returns an object with `{data, width, height}` instead of just the `data` array. This small breaking change ensures that the concept of _image data_ is consistent across the API.
+- `ImageLoader`: `options.image.type`: The `html` and `ndarray` image types are now deprecated and replaced with `image` and `data` respectively.
+
 ## Upgrading to v2.0
 
 Version 2.0 is a major release that consolidates functionality and APIs, and a number of deprecated functions have been removed.

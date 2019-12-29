@@ -10,8 +10,8 @@ Target Release Date: mid-Feb, 2019. `alpha` releases will be made available.
 
 **@loaders.gl/images**
 
-- Data Texture Loading: `ImageLoader` now accepts a `data: true` parameter that returns image data instead of an actual image, intended for use of images as data textures.
-- `ImageBitmap` Loading: now works correctly: `load(..., ImageLoader, {image: {type 'imagebitmap'}}) => ImageBitmap`
+- Image data loading is now supported on all platforms: Using the `ImageLoader` with `options.image.type: 'data'` parameter will return an _image data object_ with a typed array containing the image data (instead of an opaque `Image` or `ImageBitmap` instance).
+- `ImageBitmap` loading now works reliably, use `ImageLoader` with `options.image.type: 'imagebitmap'`.
 
 **@loaders.gl/wkt** (new loader module)
 
@@ -54,7 +54,7 @@ The 2.0 release brings potentially dramatic bundle size savings through dynamic 
   - `options.image.type`, Ability to control loaded image type enabling faster `ImageBitmap` instances to be loaded via `type: 'imagebitmap`. Default `auto` setting returns traditional HTML image objects.
 - Image Decoding. `options.image.decodeHTML: true` - `ImageLoader` now ensures HTML images are completely decoded and ready to be used when the image is returned (by calling `Image.decode()`).
 
-- **Parsed Image API** Since the type of images returned by the `ImageLoader` depends on the `{image: {type: ...}}` option, a set of functions are provided to work portably with loaded images: `isImage()`, `getImageType()`, `getImageSize()`, `getImageData()`, ...
+- **Parsed Image API** Since the type of images returned by the `ImageLoader` depends on the `{image: {type: ...}}` option, a set of functions are provided to work portably with loaded images: `isImage()`, `getImageType()`, `getImageData()`, ...
 - **Binary Image API** Separate API to work with unparsed images in binary data form: `isBinaryImage()`, `getBinaryImageType()`, `getBinaryImageSize()`, ...
 - **"Texture" Loading API** New methods `loadImages` and `loadImageCube` can signficantly simplify loading of arrays of arrays of (mipmapped) images that are often used in 3D applications. These methods allow an entire complex of images (e.g. 6 cube faces with 10 mip images each) to be loaded using a single async call.
 - **Improved Node.js support** More image test cases are now run in both browser and Node.js and a couple of important Node.js issues were uncovered and fixed.
