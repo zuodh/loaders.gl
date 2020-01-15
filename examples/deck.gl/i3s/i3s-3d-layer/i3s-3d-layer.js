@@ -7,6 +7,7 @@ import {SimpleMeshLayer} from '@deck.gl/mesh-layers';
 import {I3STileset} from '@loaders.gl/i3s';
 import {Geometry} from '@luma.gl/core';
 import GL from '@luma.gl/constants';
+import {log} from '../../../../../deck.gl/modules/core/dist/es6';
 
 const scratchOffset = new Vector3(0, 0, 0);
 
@@ -24,6 +25,9 @@ function getRootNodeUrl(tilesetUrl) {
 
 export default class Tile3DLayer extends CompositeLayer {
   initializeState() {
+    if ('onTileLoadFail' in this.props) {
+      log.removed('onTileLoadFail', 'onTileError')();
+    }
     this.state = {
       layerMap: {},
       tileset3d: null
@@ -34,9 +38,9 @@ export default class Tile3DLayer extends CompositeLayer {
     return changeFlags.somethingChanged;
   }
 
-  async updateState({props, oldProps, changeFlags}) {
+  updateState({props, oldProps, changeFlags}) {
     if (props.data && props.data !== oldProps.data) {
-      await this._loadTileset(props.data);
+      this._loadTileset(props.data);
     }
 
     if (changeFlags.viewportChanged) {
@@ -45,9 +49,11 @@ export default class Tile3DLayer extends CompositeLayer {
   }
 
   async _loadTileset(tilesetUrl, fetchOptions) {
-    const response = await fetch(tilesetUrl, fetchOptions);
-    const tilesetJson = await response.json();
     const rootNodeUrl = getRootNodeUrl(tilesetUrl);
+    const response = await fetch(tilesetUrl, fetchOptions);
+
+    const tilesetJson = await response.json();
+    // TODO hack to mathc tile3d object, should move to tileset loader
     tilesetJson.root = await fetch(rootNodeUrl, fetchOptions).then(resp => resp.json());
     tilesetJson.refine = 'REPLACE';
 
