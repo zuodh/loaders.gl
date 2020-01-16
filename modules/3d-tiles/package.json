@@ -44,6 +44,6 @@
     "probe.gl": "^3.2.0"
   },
   "devDependencies": {
-    "@deck.gl/core": "^8.0.0"
+    "@deck.gl/core": "^8.0.7"
   }
 }
