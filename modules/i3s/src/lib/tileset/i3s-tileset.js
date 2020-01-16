@@ -16,7 +16,6 @@ import {
 } from '@loaders.gl/3d-tiles';
 import I3STileHeader from './i3s-tile-header';
 import Tileset3DTraverser from './i3s-tileset-traverser';
-import {TILE3D_CONTENT_STATE} from '../constants';
 
 // Tracked Stats
 const TILES_TOTAL = 'Tiles In Tileset(s)';
@@ -95,14 +94,16 @@ export default class I3STileset {
     this.gpuMemoryUsageInBytes = 0; // The total amount of GPU memory in bytes used by the tileset.
     this.userData = {};
 
+    // update frame count, increase in each update call
+    this._frameNumber = 0;
+
     // HELPER OBJECTS
     this._requestScheduler = new RequestScheduler({
       maxRequests: 18,
       throttleRequests: this.options.throttleRequests
     });
     this._traverser = new Tileset3DTraverser({
-      basePath: this.basePath,
-      onTraverseEnd: this._onTraverseEnd.bind(this)
+      basePath: this.basePath
     });
     this._cache = new Tileset3DCache();
 
@@ -201,28 +202,37 @@ export default class I3STileset {
     return tilePath;
   }
 
-  _onTraverseEnd() {
-    this.selectedTiles = Object.values(this._traverser.selectedTiles);
-    this._requestedTiles = Object.values(this._traverser.requestedTiles);
-    this._emptyTiles = Object.values(this._traverser.emptyTiles);
-
-    const requestedTiles = this._requestedTiles.sort(
-      (t1, t2) => (this._traverser.selectedTiles[t1.id] ? -1 : 1)
-    );
-
-    const unloaded = requestedTiles.filter(
-      t =>
-        t._contentState === TILE3D_CONTENT_STATE.UNLOADED ||
-        t._contentState === TILE3D_CONTENT_STATE.EXPIRED
-    );
-
-    // Sort requests by priority before making any requests.
-    // This makes it less likely this requests will be cancelled after being issued.
-    // requestedTiles.sort((a, b) => a._priority - b._priority);
-    for (const tile of unloaded) {
-      this._loadTile(tile);
+  // eslint-disable-next-line max-statements
+  update(viewport) {
+    this._frameNumber++;
+    let frameState;
+    if ('frameNumber' in viewport) {
+      // backward compatibility
+      // this is using old API, input is `frameState` object
+      // old API: update(frameState)
+      // TODO deprecated in v2.x
+      frameState = viewport;
+    } else {
+      frameState = getFrameState(viewport, this._frameNumber);
     }
 
+    // TODO hack, remove in next release
+    frameState.viewport = viewport;
+    // TODO: only update when camera or culling volume from last update moves (could be render camera change or prefetch camera)
+    this._updatedVisibilityFrame++;
+    this._cache.reset();
+    this._traverser.traverse(this.root, frameState, this.options);
+
+    this._requestedTiles = Object.values(this._traverser.requestedTiles);
+    this.selectedTiles = Object.values(this._traverser.selectedTiles);
+    this._emptyTiles = Object.values(this._traverser.emptyTiles);
+
+    const requestedTiles = this._requestedTiles;
+    // the bigger the higher priority
+    requestedTiles.sort((a, b) => b._priority - a._priority);
+    for (const tile of requestedTiles) {
+      this._loadTile(tile, frameState);
+    }
     this._unloadTiles();
 
     // TODO `tilesRenderable` and `pointsRenderable` should increase when parsing completed
@@ -240,16 +250,8 @@ export default class I3STileset {
     this.stats.get(TILES_IN_VIEW).count = this.selectedTiles.length;
     this.stats.get(TILES_RENDERABLE).count = tilesRenderable;
     this.stats.get(POINTS_COUNT).count = pointsRenderable;
-  }
 
-  update(viewport) {
-    const frameState = getFrameState(viewport);
-    // TODO hack, remove in next release
-    frameState.viewport = viewport;
-    // TODO: only update when camera or culling volume from last update moves (could be render camera change or prefetch camera)
-    this._updatedVisibilityFrame++;
-    this._cache.reset();
-    this._traverser.traverse(this.root, frameState, this.options);
+    return this._frameNumber;
   }
 
   // TODO - why are these public methods? For testing?
@@ -339,8 +341,6 @@ export default class I3STileset {
       calculateTransformProps(tile, tile._content);
     }
 
-    // TODO enable caching when fixed
-    // this.addTileToCache(tile);
     this.options.onTileLoad(tile);
   }
 

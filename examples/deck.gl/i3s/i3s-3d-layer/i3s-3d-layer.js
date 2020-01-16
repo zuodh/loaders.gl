@@ -1,13 +1,12 @@
 /* global fetch */
 import {Vector3} from 'math.gl';
 
-import {COORDINATE_SYSTEM, CompositeLayer} from '@deck.gl/core';
+import {COORDINATE_SYSTEM, CompositeLayer, log} from '@deck.gl/core';
 import {SimpleMeshLayer} from '@deck.gl/mesh-layers';
 
 import {I3STileset} from '@loaders.gl/i3s';
 import {Geometry} from '@luma.gl/core';
 import GL from '@luma.gl/constants';
-import {log} from '../../../../../deck.gl/modules/core/dist/es6';
 
 const scratchOffset = new Vector3(0, 0, 0);
 
@@ -69,18 +68,18 @@ export default class Tile3DLayer extends CompositeLayer {
     });
 
     if (tileset3d) {
+      this._updateTileset(tileset3d);
       this.props.onTilesetLoad(tileset3d);
     }
   }
 
   _onTileLoad(tile) {
-    this.props.onTileLoad(tile);
     this._updateTileset(this.state.tileset3d);
+    this.props.onTileLoad(tile);
   }
 
   _onTileUnload(tile) {
     this.props.onTileUnload(tile);
-    this._updateTileset(this.state.tileset3d);
   }
 
   _updateTileset(tileset3d) {
@@ -90,11 +89,11 @@ export default class Tile3DLayer extends CompositeLayer {
     }
 
     // TODO use a valid frameState
-    tileset3d.update(viewport);
-    this._updateLayerMap();
+    const frameNumber = tileset3d.update(viewport);
+    this._updateLayerMap(frameNumber);
   }
 
-  _updateLayerMap() {
+  _updateLayerMap(frameNumber) {
     const {tileset3d, layerMap} = this.state;
 
     // create layers for new tiles
@@ -105,6 +104,8 @@ export default class Tile3DLayer extends CompositeLayer {
       );
 
       for (const tile of tilesWithoutLayer) {
+        // TODO move it to @loaders.gl/i3s
+        this.addTileToCache(tile);
         layerMap[tile.id] = {
           layer: this._create3DTileLayer(tile),
           tile
@@ -113,29 +114,31 @@ export default class Tile3DLayer extends CompositeLayer {
     }
 
     // update layer visibility
-    this._updateLayers();
+    this._selectLayers(frameNumber);
   }
 
   // Grab only those layers who were selected this frame.
-  _updateLayers() {
-    const {layerMap, tileset3d} = this.state;
-    const selectedTiles = tileset3d && tileset3d.selectedTiles;
+  _selectLayers(frameNumber) {
+    const {layerMap} = this.state;
+    const layerMapValues = Object.values(layerMap);
 
-    const tileIds = Object.keys(layerMap);
-    for (let i = 0; i < tileIds.length; i++) {
-      const tileId = tileIds[i];
-      const selected = selectedTiles.find(tile => tile.id === tileId);
-      let layer = layerMap[tileId].layer;
-      if (!selected && layer.props && layer.props.visible) {
-        // Still has GPU resource but visibility is turned off so turn it back on so we can render it.
-        layer = layer.clone({visible: false});
-        layerMap[tileId].layer = layer;
-      } else if (selected && layer.props) {
-        // Still has GPU resource but visibility is turned off so turn it back on so we can render it.
-        if (!layer.props.visible) {
+    for (const value of layerMapValues) {
+      const {tile} = value;
+      let {layer} = value;
+
+      if (tile.selectedFrame === frameNumber) {
+        if (layer && layer.props && !layer.props.visible) {
+          // Still has GPU resource but visibility is turned off so turn it back on so we can render it.
           layer = layer.clone({visible: true});
+          layerMap[tile.id].layer = layer;
         }
-        layerMap[tileId].layer = layer;
+      } else if (tile.contentUnloaded) {
+        // Was cleaned up from tileset cache. We no longer need to track it.
+        delete layerMap[tile.id];
+      } else if (layer && layer.props && layer.props.visible) {
+        // Still in tileset cache but doesn't need to render this frame. Keep the GPU resource bound but don't render it.
+        layer = layer.clone({visible: false});
+        layerMap[tile.id].layer = layer;
       }
     }
 
@@ -151,6 +154,8 @@ export default class Tile3DLayer extends CompositeLayer {
       positions.set(scratchOffset, i);
     }
 
+    const SubLayerClass = this.getSubLayerClass('mesh', SimpleMeshLayer);
+
     const geometry = new Geometry({
       drawMode: GL.TRIANGLES,
       attributes: {
@@ -160,7 +165,7 @@ export default class Tile3DLayer extends CompositeLayer {
       }
     });
 
-    return new SimpleMeshLayer({
+    return new SubLayerClass({
       id: `mesh-layer-${tile.id}`,
       mesh: geometry,
       data: [{}],

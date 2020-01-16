@@ -14,6 +14,17 @@ const defined = x => x !== undefined && x !== null;
 
 const scratchVector = new Vector3();
 
+function updatePriority(tile) {
+  // Check if any reason to abort
+  if (!tile._visible) {
+    return -1;
+  }
+  if (tile._contentState === TILE3D_CONTENT_STATE.UNLOADED) {
+    return -1;
+  }
+  return Math.max(1e7 - tile._priority, 0) || 0;
+}
+
 // A Tile3DHeader represents a tile a Tileset3D. When a tile is first created, its content is not loaded;
 // the content is loaded on-demand when needed based on the view.
 // Do not construct this directly, instead access tiles through {@link Tileset3D#tileVisible}.
@@ -254,17 +265,6 @@ export default class Tile3DHeader {
     }
 
     this._contentState = TILE3D_CONTENT_STATE.LOADING;
-
-    function updatePriority(tile) {
-      // Check if any reason to abort
-      if (!tile._visible) {
-        return -1;
-      }
-      if (tile._contentState === TILE3D_CONTENT_STATE.UNLOADED) {
-        return -1;
-      }
-      return Math.max(1e7 - tile._priority, 0) || 0;
-    }
 
     const cancelled = !(await this.tileset._requestScheduler.scheduleRequest(this, updatePriority));
 

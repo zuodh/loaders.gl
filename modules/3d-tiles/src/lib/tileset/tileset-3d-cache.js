@@ -2,7 +2,6 @@
 // See LICENSE.md and https://github.com/AnalyticalGraphicsInc/cesium/blob/master/LICENSE.md
 
 import DoublyLinkedList from '../utils/doubly-linked-list';
-const defined = x => x !== undefined;
 
 /**
  * Stores tiles with content loaded.
@@ -27,13 +26,13 @@ export default class Tileset3DCache {
 
   touch(tile) {
     const node = tile.cacheNode;
-    if (defined(node)) {
+    if (node) {
       this._list.splice(this._sentinel, node);
     }
   }
 
   add(tileset, tile, addCallback) {
-    if (!defined(tile.cacheNode)) {
+    if (!tile.cacheNode) {
       tile.cacheNode = this._list.add(tile);
 
       if (addCallback) {
@@ -44,12 +43,12 @@ export default class Tileset3DCache {
 
   unloadTile(tileset, tile, unloadCallback) {
     const node = tile.cacheNode;
-    if (!defined(node)) {
+    if (!node) {
       return;
     }
 
     this._list.remove(node);
-    tile.cacheNode = undefined;
+    tile.cacheNode = null;
     if (unloadCallback) {
       unloadCallback(tileset, tile);
     }
@@ -68,7 +67,6 @@ export default class Tileset3DCache {
     // The sub-list to the left of the sentinel is ordered from LRU to MRU.
     const sentinel = this._sentinel;
     let node = list.head;
-
     while (
       node !== sentinel &&
       (tileset.gpuMemoryUsageInBytes > maximumMemoryUsageInBytes || trimTiles)

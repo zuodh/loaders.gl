@@ -125,6 +125,9 @@ export default class Tileset3D {
     this.geometricError = undefined; // Geometric error when the tree is not rendered at all
     this.userData = {};
 
+    // update frame count, increase in each update call
+    this._frameNumber = 0;
+
     // HELPER OBJECTS
     this._queryParams = {};
     this._requestScheduler = new RequestScheduler({
@@ -249,6 +252,10 @@ export default class Tileset3D {
     return this._extras;
   }
 
+  get frameNumber() {
+    return this._frameNumber;
+  }
+
   getTileUrl(tilePath, basePath) {
     const isDataUrl = url => url.startsWith('data:');
     return isDataUrl(tilePath)
@@ -261,19 +268,21 @@ export default class Tileset3D {
     return Boolean(this._extensionsUsed && this._extensionsUsed.indexOf(extensionName) > -1);
   }
 
+  // eslint-disable-next-line max-statements
   update(viewport) {
+    this._frameNumber++;
     let frameState;
     if ('frameNumber' in viewport) {
       // backward compatibility
       // this is using old API, input is `frameState` object
       // old API: update(frameState)
+      // TODO deprecated in v2.x
       frameState = viewport;
     } else {
-      // TODO deprecated in v8.x
-      frameState = getFrameState(viewport);
+      frameState = getFrameState(viewport, this._frameNumber);
     }
-
-    this._updatedVisibilityFrame++; // TODO: only update when camera or culling volume from last update moves (could be render camera change or prefetch camera)
+    // TODO: only update when camera or culling volume from last update moves (could be render camera change or prefetch camera)
+    this._updatedVisibilityFrame++;
     this._cache.reset();
 
     this._traverser.traverse(this.root, frameState, this.options);
