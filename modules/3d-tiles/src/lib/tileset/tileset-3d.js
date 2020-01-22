@@ -83,8 +83,6 @@ const DEFAULT_OPTIONS = {
   dynamicScreenSpaceErrorDensity: 0.00278,
   dynamicScreenSpaceErrorFactor: 4.0,
 
-  // Optimization option. Determines if level of detail skipping should be applied during the traversal.
-  skipLevelOfDetail: false,
   // The screen space error this must be reached before skipping levels of detail.
   baseScreenSpaceError: 1024,
 

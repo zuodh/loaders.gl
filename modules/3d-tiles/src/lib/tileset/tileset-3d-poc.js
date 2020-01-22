@@ -8,39 +8,34 @@ import {path} from '@loaders.gl/core';
 import {RequestScheduler} from '@loaders.gl/loader-utils';
 
 import assert from '../utils/assert';
+import {getFrameState} from './helpers/get-frame-state';
 
-import {
-  _Tileset3DCache as Tileset3DCache,
-  _getFrameState as getFrameState,
-  calculateTransformProps
-} from '@loaders.gl/3d-tiles';
-import I3STileHeader from './i3s-tile-header';
-import Tileset3DTraverser from './i3s-tileset-traverser';
-
-// Tracked Stats
-const TILES_TOTAL = 'Tiles In Tileset(s)';
-const TILES_IN_MEMORY = 'Tiles In Memory';
-const TILES_IN_VIEW = 'Tiles In View';
-const TILES_RENDERABLE = 'Tiles To Render';
-const TILES_LOADED = 'Tiles Loaded';
-const TILES_LOADING = 'Tiles Loading';
-const TILES_UNLOADED = 'Tiles Unloaded';
-const TILES_LOAD_FAILED = 'Failed Tile Loads';
-const POINTS_COUNT = 'Points';
-const TILES_GPU_MEMORY = 'Tile Memory Use';
+import {calculateTransformProps} from './helpers/transform-utils';
+import Tile3DHeader from './tile-3d-header';
+import Tileset3DTraverser from './tileset-3d-traverser';
+import Tileset3DCache from './tileset-3d-cache';
 
 // TODO move to Math library?
 const WGS84_RADIUS_X = 6378137.0;
 const WGS84_RADIUS_Y = 6378137.0;
 const WGS84_RADIUS_Z = 6356752.3142451793;
 
+const DEFAULT_ZOOM = 16;
+
+const scratchVector = new Vector3();
+
 function getZoom(boundingVolume) {
-  return 12;
   const {halfAxes, radius, width, height} = boundingVolume;
 
   if (halfAxes) {
     // OrientedBoundingBox
-    const [x, , , , y, , , , z] = halfAxes;
+    halfAxes.getColumn(0, scratchVector);
+    const x = scratchVector.len();
+    halfAxes.getColumn(1, scratchVector);
+    const y = scratchVector.len();
+    halfAxes.getColumn(2, scratchVector);
+    const z = scratchVector.len();
+
     const zoomX = Math.log2(WGS84_RADIUS_X / x / 2);
     const zoomY = Math.log2(WGS84_RADIUS_Y / y / 2);
     const zoomZ = Math.log2(WGS84_RADIUS_Z / z / 2);
@@ -70,62 +65,81 @@ const DEFAULT_OPTIONS = {
   throttleRequests: false,
 
   // The maximum screen space error used to drive level of detail refinement.
+  maximumScreenSpaceError: 8,
   maximumMemoryUsage: 32,
+
+  // The screen space error this must be reached before skipping levels of detail.
+  baseScreenSpaceError: 1024,
 
   onTileLoad: () => {}, // Indicates this a tile's content was loaded
   onTileUnload: () => {}, // Indicates this a tile's content was unloaded
   onTileError: (tile, message, url) => {}
 };
 
-export default class I3STileset {
+function getQueryParamString(queryParams) {
+  const queryParamStrings = [];
+  for (const key of Object.keys(queryParams)) {
+    queryParamStrings.push(`${key}=${queryParams[key]}`);
+  }
+  switch (queryParamStrings.length) {
+    case 0:
+      return '';
+    case 1:
+      return `?${queryParamStrings[0]}`;
+    default:
+      return `?${queryParamStrings.join('&')}`;
+  }
+}
+
+export default class Tileset3D {
   // eslint-disable-next-line max-statements
   constructor(json, url, options = {}) {
     assert(json);
-    this._debug = {};
 
     // PUBLIC MEMBERS
     this.options = {...DEFAULT_OPTIONS, ...options};
     this.url = url; // The url to a tileset JSON file.
-    this.basePath = options.basePath || path.dirname(url); // base path that non-absolute paths in tileset are relative to.
+    this.basePath = path.dirname(url); // base path that non-absolute paths in tileset are relative to.
     this.modelMatrix = this.options.modelMatrix;
 
-    this.stats = new Stats({id: url});
-    this._initializeStats();
-
     this.gpuMemoryUsageInBytes = 0; // The total amount of GPU memory in bytes used by the tileset.
+    this.geometricError = undefined; // Geometric error when the tree is not rendered at all
     this.userData = {};
 
     // update frame count, increase in each update call
     this._frameNumber = 0;
 
     // HELPER OBJECTS
+    this._queryParams = {};
     this._requestScheduler = new RequestScheduler({
-      maxRequests: 18,
       throttleRequests: this.options.throttleRequests
     });
-    this._traverser = new Tileset3DTraverser({
-      basePath: this.basePath
-    });
+    this._traverser = new Tileset3DTraverser();
     this._cache = new Tileset3DCache();
 
     // HOLD TRAVERSAL RESULTS
     this.selectedTiles = [];
-    this._requestedTiles = [];
     this._emptyTiles = [];
+    this._requestedTiles = [];
+
+    // Metadata for the entire tileset
+    this.asset = {};
+    this.credits = {};
+    this.description = this.options.description;
 
     // EXTRACTED FROM TILESET
     this._root = undefined;
+    this._properties = undefined; // Metadata for per-model/point/etc properties
+    this._extensionsUsed = undefined;
 
     this._loadTimestamp = undefined;
-    this._timeSinceLoad = 0.0;
     this._updatedVisibilityFrame = 0;
+    this._extras = undefined;
 
+    this._allTilesAdditive = true;
+    this._hasMixedContent = false;
+    this._maximumScreenSpaceError = this.options.maximumScreenSpaceError;
     this._maximumMemoryUsage = this.options.maximumMemoryUsage;
-
-    this._tilesLoaded = false;
-    this._initialTilesLoaded = false;
-
-    this._readyPromise = Promise.resolve();
 
     this._ellipsoid = this.options.ellipsoid;
 
@@ -140,6 +154,9 @@ export default class I3STileset {
   // get asset() {
   //   return this._asset;
   // }
+  get traverser() {
+    return this._traverser;
+  }
 
   // Gets the tileset's properties dictionary object, which contains metadata about per-feature properties.
   get properties() {
@@ -151,31 +168,26 @@ export default class I3STileset {
     return Boolean(this._root);
   }
 
-  // Gets the promise this will be resolved when the tileset's root tile is loaded and the tileset is ready to render.
-  // This promise is resolved at the end of the frame before the first frame the tileset is rendered in.
-  get readyPromise() {
-    return this._readyPromise.promise;
-  }
-
   // When <code>true</code>, all tiles this meet the screen space error this frame are loaded.
   get tilesLoaded() {
     return this._tilesLoaded;
   }
 
-  // The root tile header.
+  get queryParams() {
+    return getQueryParamString(this._queryParams);
+  }
+
   get root() {
     return this._root;
   }
 
   // The tileset's bounding sphere.
   get boundingSphere() {
-    this._root.updateTransform(this.modelMatrix);
-    return this._root.boundingSphere;
-  }
-
-  // Returns the time, in milliseconds, since the tileset was loaded and first updated.
-  get timeSinceLoad() {
-    return this._timeSinceLoad;
+    if (this.ready) {
+      this._root.updateTransform(this.modelMatrix);
+      return this._root.boundingSphere;
+    }
+    return null;
   }
 
   // The maximum amount of GPU memory (in MB) that may be used to cache tiles.
@@ -199,8 +211,20 @@ export default class I3STileset {
     return this._extras;
   }
 
+  get frameNumber() {
+    return this._frameNumber;
+  }
+
   getTileUrl(tilePath, basePath) {
-    return tilePath;
+    const isDataUrl = url => url.startsWith('data:');
+    return isDataUrl(tilePath)
+      ? tilePath
+      : `${basePath || this.basePath}/${tilePath}${this.queryParams}`;
+  }
+
+  // true if the tileset JSON file lists the extension in extensionsUsed
+  hasExtension(extensionName) {
+    return Boolean(this._extensionsUsed && this._extensionsUsed.indexOf(extensionName) > -1);
   }
 
   // eslint-disable-next-line max-statements
@@ -216,43 +240,26 @@ export default class I3STileset {
     } else {
       frameState = getFrameState(viewport, this._frameNumber);
     }
-
-    // TODO hack, remove in next release
-    frameState.viewport = viewport;
     // TODO: only update when camera or culling volume from last update moves (could be render camera change or prefetch camera)
     this._updatedVisibilityFrame++;
     this._cache.reset();
-    this._traverser.traverse(this.root, frameState, this.options);
 
+    this._traverser.traverse(this.root, frameState, this.options);
     this._requestedTiles = Object.values(this._traverser.requestedTiles);
     this.selectedTiles = Object.values(this._traverser.selectedTiles);
     this._emptyTiles = Object.values(this._traverser.emptyTiles);
 
     const requestedTiles = this._requestedTiles;
-    // the bigger the higher priority
-    requestedTiles.sort((a, b) => b._priority - a._priority);
+    // Sort requests by priority before making any requests.
+    // This makes it less likely this requests will be cancelled after being issued.
+    // requestedTiles.sort((a, b) => a._priority - b._priority);
     for (const tile of requestedTiles) {
       this._loadTile(tile, frameState);
     }
+
     this._unloadTiles();
 
-    // TODO `tilesRenderable` and `pointsRenderable` should increase when parsing completed
-    let tilesRenderable = 0;
-    let pointsRenderable = 0;
-    for (const tile of this.selectedTiles) {
-      if (tile.contentAvailable) {
-        tilesRenderable++;
-        if (tile.content.pointCount) {
-          pointsRenderable += tile.content.pointCount;
-        }
-      }
-    }
-
-    this.stats.get(TILES_IN_VIEW).count = this.selectedTiles.length;
-    this.stats.get(TILES_RENDERABLE).count = tilesRenderable;
-    this.stats.get(POINTS_COUNT).count = pointsRenderable;
-
-    return this._frameNumber;
+    return frameState.frameNumber;
   }
 
   // TODO - why are these public methods? For testing?
@@ -270,7 +277,34 @@ export default class I3STileset {
   // PRIVATE
 
   // eslint-disable-next-line max-statements
-  async _initializeTileSet(tilesetJson, options) {
+  _initializeTileSet(tilesetJson, options) {
+    this.asset = tilesetJson.asset;
+    if (!this.asset) {
+      throw new Error('Tileset must have an asset property.');
+    }
+    if (this.asset.version !== '0.0' && this.asset.version !== '1.0') {
+      throw new Error('The tileset must be 3D Tiles version 0.0 or 1.0.');
+    }
+
+    // Note: `asset.tilesetVersion` is version of the tileset itself (not the version of the 3D TILES standard)
+    // We add this version as a `v=1.0` query param to fetch the right version and not get an older cached version
+    if ('tilesetVersion' in this.asset) {
+      this._queryParams.v = this.asset.tilesetVersion;
+    }
+
+    // TODO - ion resources have a credits property we can use for additional attribution.
+    this.credits = {
+      attributions: options.attributions || []
+    };
+
+    this._properties = tilesetJson.properties;
+    this.geometricError = tilesetJson.geometricError;
+    this._extensionsUsed = tilesetJson.extensionsUsed;
+    this._extras = tilesetJson.extras;
+
+    // TODO - handle configurable glTF up axis
+    this._gltfUpAxis = tilesetJson.asset.gltfUpAxis;
+
     this._root = this._initializeTileHeaders(tilesetJson, null, this.basePath);
 
     // Calculate cartographicCenter & zoom props to help apps center view on tileset
@@ -286,23 +320,43 @@ export default class I3STileset {
       // eslint-disable-next-line
       console.warn('center was not pre-calculated for the root tile');
       this.cartographicCenter = new Vector3();
-      this.zoom = 16;
+      this.zoom = DEFAULT_ZOOM;
       return;
     }
-
-    this.cartesianCenter = center;
     this.cartographicCenter = Ellipsoid.WGS84.cartesianToCartographic(center, new Vector3());
+    this.cartesianCenter = center;
     this.zoom = getZoom(root.boundingVolume);
   }
 
   // Installs the main tileset JSON file or a tileset JSON file referenced from a tile.
+  // eslint-disable-next-line max-statements
   _initializeTileHeaders(tilesetJson, parentTileHeader, basePath) {
     // A tileset JSON file referenced from a tile may exist in a different directory than the root tileset.
     // Get the basePath relative to the external tileset.
-    const rootTile = new I3STileHeader(this, tilesetJson.root, parentTileHeader, basePath); // resource
+    const rootTile = new Tile3DHeader(this, tilesetJson.root, parentTileHeader, basePath); // resource
 
+    // If there is a parentTileHeader, add the root of the currently loading tileset
+    // to parentTileHeader's children, and update its _depth.
     if (parentTileHeader) {
       parentTileHeader.children.push(rootTile);
+      rootTile._depth = parentTileHeader._depth + 1;
+    }
+
+    const stack = [];
+    stack.push(rootTile);
+
+    while (stack.length > 0) {
+      const tile = stack.pop();
+      this.stats.get(TILES_TOTAL).incrementCount();
+      // this._allTilesAdditive = this._allTilesAdditive && tile.refine === TILE_3D_REFINE.ADD;
+
+      const children = tile._header.children || [];
+      for (const childHeader of children) {
+        const childTile = new Tile3DHeader(this, childHeader, tile, basePath);
+        tile.children.push(childTile);
+        childTile._depth = tile._depth + 1;
+        stack.push(childTile);
+      }
     }
 
     return rootTile;
@@ -312,14 +366,13 @@ export default class I3STileset {
     this._destroySubtree(parentTile);
   }
 
-  async _loadTile(tile) {
-    // load content
+  async _loadTile(tile, frameState) {
     // TODO - support tile expiration
     let loaded;
 
     this.stats.get(TILES_LOADING).incrementCount();
     try {
-      loaded = await tile.loadContent();
+      loaded = await tile.loadContent(frameState);
     } catch (error) {
       this.stats.get(TILES_LOADING).decrementCount();
       this.stats.get(TILES_LOAD_FAILED).incrementCount();
@@ -328,7 +381,7 @@ export default class I3STileset {
       const url = tile.url;
       // TODO - Allow for probe log to be injected instead of console?
       console.error(`A 3D tile failed to load: ${tile.url} ${message}`); // eslint-disable-line
-      this.options.onTileLoadFail(tile, message, url);
+      this.options.onTileError(tile, message, url);
       return;
     }
     this.stats.get(TILES_LOADING).decrementCount();
@@ -346,20 +399,12 @@ export default class I3STileset {
   }
 
   _addTileToCache(tile) {
-    this.stats.get(TILES_LOADED).incrementCount();
-    this.stats.get(TILES_IN_MEMORY).incrementCount();
-
     // Good enough? Just use the raw binary ArrayBuffer's byte length.
     this.gpuMemoryUsageInBytes += tile._content.byteLength || 0;
-    this.stats.get(TILES_GPU_MEMORY).count = this.gpuMemoryUsageInBytes;
   }
 
   _unloadTile(tile) {
-    this.stats.get(TILES_IN_MEMORY).decrementCount();
-    this.stats.get(TILES_UNLOADED).incrementCount();
-
     this.gpuMemoryUsageInBytes -= tile._content.byteLength || 0;
-    this.stats.get(TILES_GPU_MEMORY).count = this.gpuMemoryUsageInBytes;
 
     this.options.onTileUnload(tile);
     tile.unloadContent();
@@ -409,18 +454,5 @@ export default class I3STileset {
     this._cache.unloadTile(this, tile);
     this._unloadTile(tile);
     tile.destroy();
-  }
-
-  _initializeStats() {
-    this.stats.get(TILES_TOTAL);
-    this.stats.get(TILES_LOADING);
-    this.stats.get(TILES_IN_MEMORY);
-    this.stats.get(TILES_IN_VIEW);
-    this.stats.get(TILES_RENDERABLE);
-    this.stats.get(TILES_LOADED);
-    this.stats.get(TILES_UNLOADED);
-    this.stats.get(TILES_LOAD_FAILED);
-    this.stats.get(POINTS_COUNT, 'memory');
-    this.stats.get(TILES_GPU_MEMORY, 'memory');
   }
 }

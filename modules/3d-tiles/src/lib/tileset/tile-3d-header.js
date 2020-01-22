@@ -25,6 +25,11 @@ function updatePriority(tile) {
   return Math.max(1e7 - tile._priority, 0) || 0;
 }
 
+function fog(distanceToCamera, density) {
+  const scalar = distanceToCamera * density;
+  return 1.0 - Math.exp(-(scalar * scalar));
+}
+
 // A Tile3DHeader represents a tile a Tileset3D. When a tile is first created, its content is not loaded;
 // the content is loaded on-demand when needed based on the view.
 // Do not construct this directly, instead access tiles through {@link Tileset3D#tileVisible}.
@@ -105,7 +110,7 @@ export default class Tile3DHeader {
     return this._visible && this._inRequestVolume;
   }
 
-  // The tile's content.  This represents the actual tile's payload,
+  // The tile's content.This represents the actual tile's payload,
   // not the content's metadata in the tileset JSON file.
   get content() {
     return this._content;
@@ -218,11 +223,6 @@ export default class Tile3DHeader {
 
   // TODO: Refined screen space error that minimizes tiles in non-first-person
   _getDynamicScreenSpaceError(distance) {
-    function fog(distanceToCamera, density) {
-      const scalar = distanceToCamera * density;
-      return 1.0 - Math.exp(-(scalar * scalar));
-    }
-
     const tileset = this._tileset;
 
     if (tileset.dynamicScreenSpaceError && tileset._dynamicScreenSpaceErrorComputedDensity) {
@@ -385,46 +385,6 @@ export default class Tile3DHeader {
     return cullingVolume.computeVisibilityWithPlaneMask(boundingVolume, parentVisibilityPlaneMask);
   }
 
-  // Assuming the tile's bounding volume intersects the culling volume, determines
-  // whether the tile's content's bounding volume intersects the culling volume.
-  // @param {FrameState} frameState The frame state.
-  // @returns {Intersect} The result of the intersection: the tile's content is completely outside, completely inside, or intersecting the culling volume.
-  contentVisibility(frameState) {
-    return true;
-    /*
-    // Assumes the tile's bounding volume intersects the culling volume already, so
-    // just return Intersect.INSIDE if there is no content bounding volume.
-    if (!defined(this._contentBoundingVolume)) {
-      return Intersect.INSIDE;
-    }
-
-    if (this._visibilityPlaneMask === CullingVolume.MASK_INSIDE) {
-      // The tile's bounding volume is completely inside the culling volume so
-      // the content bounding volume must also be inside.
-      return Intersect.INSIDE;
-    }
-
-    // PERFORMANCE_IDEA: is it possible to burn less CPU on this test since we know the
-    // tile's (not the content's) bounding volume intersects the culling volume?
-    const cullingVolume = frameState.cullingVolume;
-    const boundingVolume = tile._contentBoundingVolume;
-
-    const tileset = this._tileset;
-    const clippingPlanes = tileset.clippingPlanes;
-    if (defined(clippingPlanes) && clippingPlanes.enabled) {
-      const intersection = clippingPlanes.computeIntersectionWithBoundingVolume(
-        boundingVolume,
-        tileset.clippingPlanesOriginMatrix
-      );
-      this._isClipped = intersection !== Intersect.INSIDE;
-      if (intersection === Intersect.OUTSIDE) {
-        return Intersect.OUTSIDE;
-      }
-    }
-
-    return cullingVolume.computeVisibility(boundingVolume);
-    */
-  }
 
   // Computes the (potentially approximate) distance from the closest point of the tile's bounding volume to the camera.
   // @param {FrameState} frameState The frame state.
@@ -458,24 +418,6 @@ export default class Tile3DHeader {
   _initializeCache(header) {
     // The node in the tileset's LRU cache, used to determine when to unload a tile's content.
     this.cacheNode = undefined;
-
-    const expire = header.expire;
-    let expireDuration;
-    let expireDate;
-    if (expire) {
-      expireDuration = expire.duration;
-      if (expire.date) {
-        expireDate = Date.fromIso8601(expire.date);
-      }
-    }
-
-    // The time in seconds after the tile's content is ready when the content expires and new content is requested.
-    // @type {Number}
-    this.expireDuration = expireDuration;
-
-    // The date when the content expires and new content is requested.
-    // @type {Date}
-    this.expireDate = expireDate;
   }
 
   _initializeTransforms(tileHeader) {
@@ -642,52 +584,10 @@ export default class Tile3DHeader {
     }
     if (this._viewerRequestVolume) {
       this._viewerRequestVolume = createBoundingVolume(
-        header.viewerRequestVolume,
+        header._viewerRequestVolume,
         this.computedTransform,
         this._viewerRequestVolume
       );
     }
   }
 }
-
-/*
-function updateContent(tile, tileset, frameState) {
-  const content = tile._content;
-  const expiredContent = tile._expiredContent;
-
-  if (expiredContent) {
-    if (!tile.contentReady) {
-      // Render the expired content while the content loads
-      expiredContent.update(tileset, frameState);
-      return;
-    }
-
-    // New content is ready, destroy expired content
-    tile._expiredContent.destroy();
-    tile._expiredContent = undefined;
-  }
-
-  content.update(tileset, frameState);
-}
-
-function updateExpireDate(tile) {
-  if (defined(tile.expireDuration)) {
-    const expireDurationDate = Date.now(scratchDate);
-    Date.addSeconds(expireDurationDate, tile.expireDuration, expireDurationDate);
-
-    if (defined(tile.expireDate)) {
-      if (Date.lessThan(tile.expireDate, expireDurationDate)) {
-        Date.clone(expireDurationDate, tile.expireDate);
-      }
-    } else {
-      tile.expireDate = Date.clone(expireDurationDate);
-    }
-  }
-}
-
-function createPriorityFunction(tile) {
-  return function() {
-    return tile._priority;
-  };
-}
-*/

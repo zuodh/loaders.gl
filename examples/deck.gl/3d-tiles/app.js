@@ -5,6 +5,8 @@ import {StaticMap} from 'react-map-gl';
 import DeckGL from '@deck.gl/react';
 import {MapController, FlyToInterpolator} from '@deck.gl/core';
 import {Tile3DLayer} from '@deck.gl/geo-layers';
+// import Tile3DLayer from './tile-3d-layer-poc';
+// import {Tileset3DLoader} from '@loaders.gl/3d-tiles';
 
 import {lumaStats} from '@luma.gl/core';
 import {StatsWidget} from '@probe.gl/stats-widget';
@@ -56,7 +58,6 @@ export default class App extends PureComponent {
       selectedMapStyle: INITIAL_MAP_STYLE,
 
       // EXAMPLE STATE
-      droppedFile: null,
       examplesByCategory: null,
       selectedExample: {},
       category: INITIAL_EXAMPLE_CATEGORY,
@@ -233,7 +234,10 @@ export default class App extends PureComponent {
     }
 
     const {tilesetUrl, ionAssetId, ionAccessToken, maximumScreenSpaceError} = selectedExample;
-    const loadOptions = maximumScreenSpaceError ? {maximumScreenSpaceError} : {};
+    const loadOptions = {ionAssetId, ionAccessToken};
+    if (maximumScreenSpaceError) {
+      loadOptions.maximumScreenSpaceError = maximumScreenSpaceError;
+    }
 
     return new Tile3DLayer({
       id: 'tile-3d-layer',

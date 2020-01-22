@@ -35,6 +35,7 @@ export function parseI3SNodeGeometry(arrayBuffer, tile = {}) {
   let minHeight = Infinity;
   const enuMatrix = new Matrix4();
 
+  const attributes = {};
   for (const attribute in vertexAttributes) {
     const {byteOffset, count, valueType, valuesPerElement} = vertexAttributes[attribute];
     const TypedArrayType = TYPE_ARRAY_MAP[valueType];
@@ -55,19 +56,24 @@ export function parseI3SNodeGeometry(arrayBuffer, tile = {}) {
       value = offsetsToCartesians(value, content.cartographicOrigin);
     }
 
-    content.attributes[attribute] = {
+    attributes[attribute] = {
       value,
       type: GL_TYPE_MAP[valueType],
       size: valuesPerElement
     };
 
     if (attribute === 'color') {
-      content.attributes[attribute].normalized = true;
+      attributes[attribute].normalized = true;
     }
   }
 
+  content.attributes.positions = attributes.position;
+  content.attributes.colors = attributes.color;
+  content.attributes.normals = attributes.normal;
+  content.attributes.texCoords = attributes.uv0;
+
   const matrix = new Matrix4(geometryData.transformation).multiplyRight(enuMatrix);
-  content.matrix = matrix.invert();
+  content.modelMatrix = matrix.invert();
 
   content.byteLength = arrayBuffer.byteLength;
   return tile;

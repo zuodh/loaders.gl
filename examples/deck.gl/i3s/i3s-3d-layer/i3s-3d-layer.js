@@ -68,8 +68,8 @@ export default class Tile3DLayer extends CompositeLayer {
     });
 
     if (tileset3d) {
-      this._updateTileset(tileset3d);
       this.props.onTilesetLoad(tileset3d);
+      this._updateTileset(tileset3d);
     }
   }
 
@@ -83,8 +83,8 @@ export default class Tile3DLayer extends CompositeLayer {
   }
 
   _updateTileset(tileset3d) {
-    const {timeline, viewport} = this.context;
-    if (!timeline || !viewport || !tileset3d) {
+    const {viewport} = this.context;
+    if (!viewport || !tileset3d) {
       return;
     }
 
@@ -105,7 +105,7 @@ export default class Tile3DLayer extends CompositeLayer {
 
       for (const tile of tilesWithoutLayer) {
         // TODO move it to @loaders.gl/i3s
-        this.addTileToCache(tile);
+        tileset3d.addTileToCache(tile);
         layerMap[tile.id] = {
           layer: this._create3DTileLayer(tile),
           tile
@@ -147,10 +147,10 @@ export default class Tile3DLayer extends CompositeLayer {
 
   _create3DTileLayer(tile) {
     const content = tile.content;
-    const {attributes, matrix, cartographicOrigin, texture} = content;
-    const positions = new Float32Array(attributes.position.value.length);
+    const {attributes, modelMatrix, cartographicOrigin, texture} = content;
+    const positions = new Float32Array(attributes.positions.value.length);
     for (let i = 0; i < positions.length; i += 3) {
-      scratchOffset.copy(matrix.transform(attributes.position.value.subarray(i, i + 3)));
+      scratchOffset.copy(modelMatrix.transform(attributes.positions.value.subarray(i, i + 3)));
       positions.set(scratchOffset, i);
     }
 
@@ -160,8 +160,8 @@ export default class Tile3DLayer extends CompositeLayer {
       drawMode: GL.TRIANGLES,
       attributes: {
         positions,
-        normals: attributes.normal,
-        texCoords: attributes.uv0
+        normals: attributes.normals,
+        texCoords: attributes.texCoords
       }
     });
 

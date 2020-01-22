@@ -194,6 +194,7 @@ export default class App extends PureComponent {
 
   render() {
     const layers = this._renderLayers();
+    const {viewState} = this.state;
 
     return (
       <div>
@@ -204,6 +205,7 @@ export default class App extends PureComponent {
           initialViewState={INITIAL_VIEW_STATE}
           onViewStateChange={this._onViewStateChange.bind(this)}
           controller={{type: MapController, maxPitch: 85}}
+          viewState={viewState}
           onAfterRender={() => this._updateStatWidgets()}
         >
           <StaticMap
