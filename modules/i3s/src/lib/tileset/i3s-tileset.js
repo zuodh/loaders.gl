@@ -81,7 +81,6 @@ export default class I3STileset {
   // eslint-disable-next-line max-statements
   constructor(json, url, options = {}) {
     assert(json);
-    this._debug = {};
 
     // PUBLIC MEMBERS
     this.options = {...DEFAULT_OPTIONS, ...options};

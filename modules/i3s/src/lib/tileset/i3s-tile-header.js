@@ -220,14 +220,6 @@ export default class I3STileHeader {
   // The request may not be made if the Request Scheduler can't prioritize it.
   // eslint-disable-next-line max-statements
   async loadContent() {
-    if (!this.tileset._debug[this.id]) {
-      this.tileset._debug[this.id] = {
-        load: 0,
-        featureLoad: 0,
-        geometryLoad: 0,
-        unload: 0
-      };
-    }
     if (this.hasEmptyContent) {
       return false;
     }
@@ -248,7 +240,6 @@ export default class I3STileHeader {
 
     if (cancelled) {
       this._contentState = TILE3D_CONTENT_STATE.UNLOADED;
-      this.tileset._debug[this.id].unload++;
       return false;
     }
 
@@ -268,7 +259,6 @@ export default class I3STileHeader {
   async _loadFeatureData() {
     const featureData = this._header.featureData[0];
     const featureDataPath = `${this._basePath}/nodes/${this.id}/${featureData.href}`;
-    this.tileset._debug[this.id].featureLoad++;
     const response = await fetch(featureDataPath);
     return await response.json();
   }
@@ -276,7 +266,6 @@ export default class I3STileHeader {
   async _loadGeometryBuffer() {
     const geometryData = this._header.geometryData[0];
     const geometryDataPath = `${this._basePath}/nodes/${this.id}/${geometryData.href}`;
-    this.tileset._debug[this.id].geometryLoad++;
     return await fetch(geometryDataPath).then(resp => resp.arrayBuffer());
   }
 
@@ -297,20 +286,11 @@ export default class I3STileHeader {
       }
 
       parseI3SNodeGeometry(geometryBuffer, this);
-      this.tileset._debug[this.id].load++;
     }
   }
 
   // Unloads the tile's content.
   unloadContent() {
-    if (!this.tileset._debug[this.id]) {
-      this.tileset._debug[this.id] = {
-        load: 0,
-        featureLoad: 0,
-        geometryLoad: 0,
-        unload: 0
-      };
-    }
     if (!this.hasRenderContent) {
       return false;
     }
@@ -319,7 +299,6 @@ export default class I3STileHeader {
     }
     this._content = null;
     this._contentState = TILE3D_CONTENT_STATE.UNLOADED;
-    this.tileset._debug[this.id].unload++;
     return true;
   }
 

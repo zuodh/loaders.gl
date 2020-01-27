@@ -23,7 +23,8 @@ import {INITIAL_MAP_STYLE} from './constants';
 registerLoaders([GLTFLoader, DracoWorkerLoader]);
 
 // Set your mapbox token here
-const MAPBOX_TOKEN = process.env.MapboxAccessToken; // eslint-disable-line
+// const MAPBOX_TOKEN = process.env.MapboxAccessToken; // eslint-disable-line
+const MAPBOX_TOKEN = ''; // eslint-disable-line
 
 const TRANSITION_DURAITON = 4000;
 const EXAMPLES_VIEWSTATE = {
@@ -261,17 +262,11 @@ export default class App extends PureComponent {
         <DeckGL
           ref={_ => (this._deckRef = _)}
           layers={[tile3DLayer]}
-          initialViewState={INITIAL_VIEW_STATE}
           viewState={viewState}
           onViewStateChange={this._onViewStateChange.bind(this)}
           controller={{type: MapController, maxPitch: 85}}
           onAfterRender={() => this._updateStatWidgets()}
         >
-          <StaticMap
-            mapStyle={selectedMapStyle}
-            mapboxApiAccessToken={MAPBOX_TOKEN}
-            preventStyleDiffing
-          />
         </DeckGL>
       </div>
     );
