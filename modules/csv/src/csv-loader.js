@@ -1,9 +1,10 @@
-/* global __VERSION__ */ // __VERSION__ is injected by babel-plugin-version-inline
 /* global TextDecoder */
 import {AsyncQueue, TableBatchBuilder, RowTableBatch} from '@loaders.gl/tables';
 import Papa from './libs/papaparse';
 import AsyncIteratorStreamer from './lib/async-iterator-streamer';
 
+/* global __VERSION__ */ // __VERSION__ is injected by babel-plugin-version-inline
+// @ts-ignore TS2304: Cannot find name '__VERSION__'.
 const VERSION = typeof __VERSION__ !== 'undefined' ? __VERSION__ : 'latest';
 
 const CSVLoader = {

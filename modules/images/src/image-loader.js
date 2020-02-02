@@ -1,7 +1,8 @@
-/* global __VERSION__ */ // __VERSION__ is injected by babel-plugin-version-inline
 import parseImage from './lib/parsers/parse-image';
 import {isPng, isGif, isBmp, isJpeg} from './lib/binary-image-api/binary-image-parsers';
 
+/* global __VERSION__ */ // __VERSION__ is injected by babel-plugin-version-inline
+// @ts-ignore TS2304: Cannot find name '__VERSION__'.
 const VERSION = typeof __VERSION__ !== 'undefined' ? __VERSION__ : 'latest';
 
 const EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'ico', 'svg'];

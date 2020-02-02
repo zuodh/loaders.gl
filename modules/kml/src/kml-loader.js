@@ -1,9 +1,10 @@
-/* global __VERSION__ */ // __VERSION__ is injected by babel-plugin-version-inline
 /* global TextDecoder */
 import {XMLLoader} from '@loaders.gl/tables';
 import KMLParser from './lib/kml-parser';
 import normalizeKML from './lib/kml-normalizer';
 
+/* global __VERSION__ */ // __VERSION__ is injected by babel-plugin-version-inline
+// @ts-ignore TS2304: Cannot find name '__VERSION__'.
 const VERSION = typeof __VERSION__ !== 'undefined' ? __VERSION__ : 'latest';
 
 const KML_HEADER = `\

@@ -4,6 +4,8 @@ import WorkerFarm from '../../worker-utils/worker-farm';
 import {getTransferList} from '../../worker-utils/get-transfer-list';
 import {parse} from '../parse';
 
+/* global __VERSION__ */ // __VERSION__ is injected by babel-plugin-version-inline
+// @ts-ignore TS2304: Cannot find name '__VERSION__'.
 const VERSION = typeof __VERSION__ !== 'undefined' ? __VERSION__ : 'latest';
 
 export function canParseWithWorker(loader, data, options, context) {

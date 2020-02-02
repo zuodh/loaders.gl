@@ -1,9 +1,10 @@
-/* global __VERSION__ */ // __VERSION__ is injected by babel-plugin-version-inline
 /* global TextDecoder */
 import {RowTableBatch} from '@loaders.gl/tables';
 import parseJSONSync from './lib/parse-json';
 import parseJSONInBatches from './lib/parse-json-in-batches';
 
+/* global __VERSION__ */ // __VERSION__ is injected by babel-plugin-version-inline
+// @ts-ignore TS2304: Cannot find name '__VERSION__'.
 const VERSION = typeof __VERSION__ !== 'undefined' ? __VERSION__ : 'latest';
 
 export const JSONLoader = {

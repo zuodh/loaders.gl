@@ -1,6 +1,8 @@
-/* global __VERSION__ */ // __VERSION__ is injected by babel-plugin-version-inline
-const VERSION = typeof __VERSION__ !== 'undefined' ? __VERSION__ : 'latest';
 import {parse3DTile} from './lib/parsers/parse-3d-tile';
+
+/* global __VERSION__ */ // __VERSION__ is injected by babel-plugin-version-inline
+// @ts-ignore TS2304: Cannot find name '__VERSION__'.
+const VERSION = typeof __VERSION__ !== 'undefined' ? __VERSION__ : 'latest';
 
 async function parse(arrayBuffer, options, context, loader) {
   const tile = {};

@@ -1,9 +1,9 @@
 // LASER (LAS) FILE FORMAT
+import parseLAS from './lib/parse-las';
 
 /* global __VERSION__ */ // __VERSION__ is injected by babel-plugin-version-inline
+// @ts-ignore TS2304: Cannot find name '__VERSION__'.
 const VERSION = typeof __VERSION__ !== 'undefined' ? __VERSION__ : 'latest';
-
-import parseLAS from './lib/parse-las';
 
 export const LASWorkerLoader = {
   id: 'las',
