@@ -2,8 +2,8 @@
 // See LICENSE.md and https://github.com/AnalyticalGraphicsInc/cesium/blob/master/LICENSE.md
 
 import test from 'tape-promise/tape';
-import {Matrix4} from 'math.gl';
-import {TILE_REFINEMENT} from '@loaders.gl/3d-tiles/lib/constants';
+import {Matrix4} from '@math.gl/core';
+import {TILE_REFINEMENT} from '@loaders.gl/tiles';
 import Tile3DHeader from '@loaders.gl/3d-tiles/lib/tileset/tile-3d-header';
 
 const clone = object => JSON.parse(JSON.stringify(object));
