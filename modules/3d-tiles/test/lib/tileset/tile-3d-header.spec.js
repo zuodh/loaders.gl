@@ -3,7 +3,7 @@
 
 import test from 'tape-promise/tape';
 import {Matrix4} from 'math.gl';
-import {TILE3D_REFINEMENT} from '@loaders.gl/3d-tiles/lib/constants';
+import {TILE_REFINEMENT} from '@loaders.gl/3d-tiles/lib/constants';
 import Tile3DHeader from '@loaders.gl/3d-tiles/lib/tileset/tile-3d-header';
 
 const clone = object => JSON.parse(JSON.stringify(object));
@@ -138,7 +138,7 @@ test('Tile3DHeader#refine is lowercase', t => {
   const header = clone(TILE_HEADER_WITH_BOUNDING_SPHERE, true);
   header.refine = 'replace';
   const tile = new Tile3DHeader(MOCK_TILESET, header, undefined);
-  t.equals(tile.refine, TILE3D_REFINEMENT.REPLACE);
+  t.equals(tile.refine, TILE_REFINEMENT.REPLACE);
   t.end();
 });
 
